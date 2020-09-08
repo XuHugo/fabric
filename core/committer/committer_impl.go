@@ -12,6 +12,7 @@ import (
 	"github.com/hyperledger/fabric/protos/common"
 	"github.com/hyperledger/fabric/protos/utils"
 	"github.com/pkg/errors"
+	"github.com/hyperledger/fabric/common/cached"
 )
 
 var logger = flogging.MustGetLogger("committer")
@@ -55,12 +56,12 @@ type LedgerCommitter struct {
 
 // ConfigBlockEventer callback function proto type to define action
 // upon arrival on new configuaration update block
-type ConfigBlockEventer func(block *common.Block) error
+type ConfigBlockEventer func(block *cached.Block) error
 
 // NewLedgerCommitter is a factory function to create an instance of the committer
 // which passes incoming blocks via validation and commits them into the ledger.
 func NewLedgerCommitter(ledger PeerLedgerSupport) *LedgerCommitter {
-	return NewLedgerCommitterReactive(ledger, func(_ *common.Block) error { return nil })
+	return NewLedgerCommitterReactive(ledger, func(_ *cached.Block) error { return nil })
 }
 
 // NewLedgerCommitterReactive is a factory function to create an instance of the committer
@@ -72,7 +73,7 @@ func NewLedgerCommitterReactive(ledger PeerLedgerSupport, eventer ConfigBlockEve
 
 // preCommit takes care to validate the block and update based on its
 // content
-func (lc *LedgerCommitter) preCommit(block *common.Block) error {
+func (lc *LedgerCommitter) preCommit(block *cached.Block) error {
 	// Updating CSCC with new configuration block
 	if utils.IsConfigBlock(block) {
 		logger.Debug("Received configuration update, calling CSCC ConfigUpdate")

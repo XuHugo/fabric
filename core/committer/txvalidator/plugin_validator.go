@@ -20,6 +20,7 @@ import (
 	"github.com/hyperledger/fabric/msp"
 	"github.com/hyperledger/fabric/protos/common"
 	"github.com/pkg/errors"
+	"github.com/hyperledger/fabric/common/cached"
 )
 
 // MapBasedPluginMapper maps plugin names to their corresponding factories
@@ -57,7 +58,7 @@ type Context struct {
 	VSCCName  string
 	Policy    []byte
 	Namespace string
-	Block     *common.Block
+	Block     *cached.Block
 }
 
 // String returns a string representation of this Context

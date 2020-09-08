@@ -11,6 +11,7 @@ import (
 
 	"github.com/hyperledger/fabric/gossip/common"
 	"google.golang.org/grpc"
+	"github.com/hyperledger/fabric/common/cached"
 )
 
 // MessageCryptoService is the contract between the gossip component and the
@@ -27,7 +28,7 @@ type MessageCryptoService interface {
 	// VerifyBlock returns nil if the block is properly signed, and the claimed seqNum is the
 	// sequence number that the block's header contains.
 	// else returns error
-	VerifyBlock(chainID common.ChainID, seqNum uint64, signedBlock []byte) error
+	VerifyBlock(chainID common.ChainID, seqNum uint64, signedBlock *cached.Block) error
 
 	// Sign signs msg with this peer's signing key and outputs
 	// the signature if no error occurred.
