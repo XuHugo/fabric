@@ -6,6 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package statebasedval
 
 import (
+	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/privacyenabledstate"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
@@ -120,7 +121,7 @@ func (v *Validator) ValidateAndPrepareBatch(block *internal.Block, doMVCCValidat
 
 // validateEndorserTX validates endorser transaction
 func (v *Validator) validateEndorserTX(
-	txRWSet *rwsetutil.TxRwSet,
+	txRWSet *cached.TxRwSet,
 	doMVCCValidation bool,
 	updates *internal.PubAndHashUpdates) (peer.TxValidationCode, error) {
 
@@ -133,7 +134,7 @@ func (v *Validator) validateEndorserTX(
 	return validationCode, err
 }
 
-func (v *Validator) validateTx(txRWSet *rwsetutil.TxRwSet, updates *internal.PubAndHashUpdates) (peer.TxValidationCode, error) {
+func (v *Validator) validateTx(txRWSet *cached.TxRwSet, updates *internal.PubAndHashUpdates) (peer.TxValidationCode, error) {
 	// Uncomment the following only for local debugging. Don't want to print data in the logs in production
 	//logger.Debugf("validateTx - validating txRWSet: %s", spew.Sdump(txRWSet))
 	for _, nsRWSet := range txRWSet.NsRwSets {
@@ -242,7 +243,7 @@ func (v *Validator) validateRangeQuery(ns string, rangeQueryInfo *kvrwset.RangeQ
 ////////////////////////////////////////////////////////////////////////////////
 /////                 Validation of hashed read-set
 ////////////////////////////////////////////////////////////////////////////////
-func (v *Validator) validateNsHashedReadSets(ns string, collHashedRWSets []*rwsetutil.CollHashedRwSet,
+func (v *Validator) validateNsHashedReadSets(ns string, collHashedRWSets []*cached.CollHashedRwSet,
 	updates *privacyenabledstate.HashedUpdateBatch) (bool, error) {
 	for _, collHashedRWSet := range collHashedRWSets {
 		if valid, err := v.validateCollHashedReadSet(ns, collHashedRWSet.CollectionName, collHashedRWSet.HashedRwSet.HashedReads, updates); !valid || err != nil {

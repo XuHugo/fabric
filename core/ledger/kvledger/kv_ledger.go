@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/flogging"
 	commonledger "github.com/hyperledger/fabric/common/ledger"
 	"github.com/hyperledger/fabric/common/util"
@@ -479,7 +480,7 @@ func (l *kvLedger) GetMissingPvtDataInfoForMostRecentBlocks(maxBlock int) (ledge
 	return l.blockStore.GetMissingPvtDataInfoForMostRecentBlocks(maxBlock)
 }
 
-func (l *kvLedger) addBlockCommitHash(block *common.Block, updateBatchBytes []byte) {
+func (l *kvLedger) addBlockCommitHash(block *cached.Block, updateBatchBytes []byte) {
 	var valueBytes []byte
 
 	txValidationCode := block.Metadata.Metadata[common.BlockMetadataIndex_TRANSACTIONS_FILTER]

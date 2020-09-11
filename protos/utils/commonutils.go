@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hyperledger/fabric/common/cached"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hyperledger/fabric/common/crypto"
