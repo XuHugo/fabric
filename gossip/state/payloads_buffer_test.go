@@ -8,13 +8,14 @@ package state
 
 import (
 	"crypto/rand"
+	"github.com/hyperledger/fabric/fastfabric/cached"
+	"github.com/hyperledger/fabric/protos/common"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/hyperledger/fabric/gossip/util"
-	proto "github.com/hyperledger/fabric/protos/gossip"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,15 +23,14 @@ func init() {
 	util.SetupTestLogging()
 }
 
-func randomPayloadWithSeqNum(seqNum uint64) (*proto.Payload, error) {
+func randomPayloadWithSeqNum(seqNum uint64) (*cached.GossipPayload, error) {
 	data := make([]byte, 64)
 	_, err := rand.Read(data)
 	if err != nil {
 		return nil, err
 	}
-	return &proto.Payload{
-		SeqNum: seqNum,
-		Data:   data,
+	return &cached.GossipPayload{
+		Data: cached.WrapBlock(&common.Block{Header: &common.BlockHeader{Number: seqNum}}),
 	}, nil
 }
 
@@ -95,7 +95,7 @@ func TestPayloadsBufferImpl_Ready(t *testing.T) {
 	select {
 	case <-fin:
 		payload := buffer.Pop()
-		assert.Equal(t, payload.SeqNum, uint64(1))
+		assert.Equal(t, payload.Data.Header.Number, uint64(1))
 	case <-time.After(500 * time.Millisecond):
 		t.Fail()
 	}

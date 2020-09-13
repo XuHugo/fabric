@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package service
 
 import (
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"fmt"
 	"sync"
 
@@ -27,12 +28,10 @@ import (
 	"github.com/hyperledger/fabric/gossip/state"
 	"github.com/hyperledger/fabric/gossip/util"
 	"github.com/hyperledger/fabric/protos/common"
-	//gproto "github.com/hyperledger/fabric/protos/gossip"
 	"github.com/hyperledger/fabric/protos/transientstore"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 var (

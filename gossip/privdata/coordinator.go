@@ -10,6 +10,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
+	// "github.com/hyperledger/fabric/fastfabric/config"
+	"github.com/hyperledger/fabric/fastfabric/stopwatch"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -20,7 +23,6 @@ import (
 	"github.com/hyperledger/fabric/core/committer/txvalidator"
 	"github.com/hyperledger/fabric/core/common/privdata"
 	"github.com/hyperledger/fabric/core/ledger"
-	//"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
 	"github.com/hyperledger/fabric/core/transientstore"
 	"github.com/hyperledger/fabric/gossip/metrics"
 	privdatacommon "github.com/hyperledger/fabric/gossip/privdata/common"
@@ -30,9 +32,7 @@ import (
 	"github.com/hyperledger/fabric/protos/msp"
 	"github.com/hyperledger/fabric/protos/peer"
 	transientstore2 "github.com/hyperledger/fabric/protos/transientstore"
-	//"github.com/hyperledger/fabric/protos/utils"
 	"github.com/pkg/errors"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 const pullRetrySleepInterval = time.Second
@@ -173,13 +173,15 @@ func (c *coordinator) StoreBlock(block *cached.Block, privateDataSets util.PvtDa
 
 	logger.Debugf("[%s] Validating block [%d]", c.ChainID, block.Header.Number)
 
-	validationStart := time.Now()
-	err := c.Validator.Validate(block)
-	c.reportValidationDuration(time.Since(validationStart))
-	if err != nil {
-		logger.Errorf("Validation failed: %+v", err)
-		return err
-	}
+	// if config.IsFastPeer || block.Header.Number <= 1 {
+		validationStart := time.Now()
+		err := c.Validator.Validate(block)
+		c.reportValidationDuration(time.Since(validationStart))
+		if err != nil {
+			logger.Errorf("Validation failed: %+v", err)
+			return err
+		}
+	// }
 
 	blockAndPvtData := &ledger.BlockAndPvtData{
 		Block:          block,
@@ -193,7 +195,12 @@ func (c *coordinator) StoreBlock(block *cached.Block, privateDataSets util.PvtDa
 	}
 	if exist {
 		commitOpts := &ledger.CommitOptions{FetchPvtDataFromLedger: true}
-		return c.CommitWithPvtData(blockAndPvtData, commitOpts)
+
+		errChan := c.CommitWithPvtData(blockAndPvtData, commitOpts)
+		err = <-errChan
+		if err != nil {
+			return err
+		}
 	}
 
 	listMissingStart := time.Now()
@@ -282,7 +289,9 @@ func (c *coordinator) StoreBlock(block *cached.Block, privateDataSets util.PvtDa
 
 	// commit block and private data
 	commitStart := time.Now()
-	err = c.CommitWithPvtData(blockAndPvtData, &ledger.CommitOptions{})
+	errChan := c.CommitWithPvtData(blockAndPvtData, &ledger.CommitOptions{})
+	err = <-errChan
+	stopwatch.Now("commit_benchmark")
 	c.reportCommitDuration(time.Since(commitStart))
 	if err != nil {
 		return errors.Wrap(err, "commit failed")
@@ -427,6 +436,7 @@ func computeOwnedRWsets(block *cached.Block, blockPvtData util.PvtDataCollection
 			logger.Warningf("Claimed SeqInBlock %d but block has only %d transactions", txPvtData.SeqInBlock, len(block.Data.Data))
 			continue
 		}
+
 		env, err := block.UnmarshalSpecificEnvelope(int(txPvtData.SeqInBlock))
 		if err != nil {
 			return nil, err
@@ -706,6 +716,7 @@ func (c *coordinator) listMissingPrivateData(block *cached.Block, ownedRWsets ma
 		privateRWsetsInBlock: privateRWsetsInBlock,
 		coordinator:          c,
 	}
+
 	storePvtDataOfInvalidTx := c.Support.CapabilityProvider.Capabilities().StorePvtDataOfInvalidTx()
 	txList, err := forEachTxn(storePvtDataOfInvalidTx, block, txsFilter, bi.inspectTransaction)
 	if err != nil {
@@ -884,7 +895,7 @@ func (ac aggregatedCollections) asPrivateData() []*ledger.TxPvtData {
 // the order of private data in slice of PvtDataCollections doesn't implies the order of
 // transactions in the block related to these private data, to get the correct placement
 // need to read TxPvtData.SeqInBlock field
-func (c *coordinator) GetPvtDataAndBlockByNum(seqNum uint64, peerAuthInfo common.SignedData) (*common.Block, util.PvtDataCollections, error) {
+func (c *coordinator) GetPvtDataAndBlockByNum(seqNum uint64, peerAuthInfo common.SignedData) (*cached.Block, util.PvtDataCollections, error) {
 	blockAndPvtData, err := c.Committer.GetPvtDataAndBlockByNum(seqNum)
 	if err != nil {
 		return nil, nil, err
@@ -893,40 +904,39 @@ func (c *coordinator) GetPvtDataAndBlockByNum(seqNum uint64, peerAuthInfo common
 	seqs2Namespaces := aggregatedCollections(make(map[seqAndDataModel]map[string][]*rwset.CollectionPvtReadWriteSet))
 	data := blockData(blockAndPvtData.Block.Data.Data)
 	storePvtDataOfInvalidTx := c.Support.CapabilityProvider.Capabilities().StorePvtDataOfInvalidTx()
-	data.forEachTxn(storePvtDataOfInvalidTx, make(txValidationFlags, len(data)),
-		func(seqInBlock uint64, chdr *common.ChannelHeader, txRWSet *rwsetutil.TxRwSet, _ []*peer.Endorsement) error {
-			item, exists := blockAndPvtData.PvtData[seqInBlock]
-			if !exists {
-				return nil
-			}
-
-			for _, ns := range item.WriteSet.NsPvtRwset {
-				for _, col := range ns.CollectionPvtRwset {
-					cc := common.CollectionCriteria{
-						Channel:    chdr.ChannelId,
-						TxId:       chdr.TxId,
-						Namespace:  ns.Namespace,
-						Collection: col.CollectionName,
-					}
-					sp, err := c.CollectionStore.RetrieveCollectionAccessPolicy(cc)
-					if err != nil {
-						logger.Warning("Failed obtaining policy for", cc, ":", err)
-						continue
-					}
-					isAuthorized := sp.AccessFilter()
-					if isAuthorized == nil {
-						logger.Warning("Failed obtaining filter for", cc)
-						continue
-					}
-					if !isAuthorized(peerAuthInfo) {
-						logger.Debug("Skipping", cc, "because peer isn't authorized")
-						continue
-					}
-					seqs2Namespaces.addCollection(seqInBlock, item.WriteSet.DataModel, ns.Namespace, col)
-				}
-			}
+	forEachTxn(storePvtDataOfInvalidTx, blockAndPvtData.Block, make(txValidationFlags, len(data)), func(seqInBlock uint64, chdr *common.ChannelHeader, txRWSet *cached.TxRwSet, _ []*peer.Endorsement) error {
+		item, exists := blockAndPvtData.PvtData[seqInBlock]
+		if !exists {
 			return nil
-		})
+		}
+
+		for _, ns := range item.WriteSet.NsPvtRwset {
+			for _, col := range ns.CollectionPvtRwset {
+				cc := common.CollectionCriteria{
+					Channel:    chdr.ChannelId,
+					TxId:       chdr.TxId,
+					Namespace:  ns.Namespace,
+					Collection: col.CollectionName,
+				}
+				sp, err := c.CollectionStore.RetrieveCollectionAccessPolicy(cc)
+				if err != nil {
+					logger.Warning("Failed obtaining policy for", cc, ":", err)
+					continue
+				}
+				isAuthorized := sp.AccessFilter()
+				if isAuthorized == nil {
+					logger.Warning("Failed obtaining filter for", cc)
+					continue
+				}
+				if !isAuthorized(peerAuthInfo) {
+					logger.Debug("Skipping", cc, "because peer isn't authorized")
+					continue
+				}
+				seqs2Namespaces.addCollection(seqInBlock, item.WriteSet.DataModel, ns.Namespace, col)
+			}
+		}
+		return nil
+	})
 
 	return blockAndPvtData.Block, seqs2Namespaces.asPrivateData(), nil
 }
@@ -952,7 +962,7 @@ func (c *coordinator) reportPurgeDuration(time time.Duration) {
 }
 
 // containsWrites checks whether the given CollHashedRwSet contains writes
-func containsWrites(txID string, namespace string, colHashedRWSet *rwsetutil.CollHashedRwSet) bool {
+func containsWrites(txID string, namespace string, colHashedRWSet *cached.CollHashedRwSet) bool {
 	if colHashedRWSet.HashedRwSet == nil {
 		logger.Warningf("HashedRWSet of tx %s, namespace %s, collection %s is nil", txID, namespace, colHashedRWSet.CollectionName)
 		return false

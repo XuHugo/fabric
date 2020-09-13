@@ -7,12 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 package blocksprovider
 
 import (
+	"github.com/hyperledger/fabric/fastfabric/cached"
+	// "github.com/hyperledger/fabric/fastfabric/config"
+	// "github.com/hyperledger/fabric/fastfabric/gossip"
 	"math"
 	"sync/atomic"
 	"time"
 
-	//"github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/gossip/api"
 	gossipcommon "github.com/hyperledger/fabric/gossip/common"

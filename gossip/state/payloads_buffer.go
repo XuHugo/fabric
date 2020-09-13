@@ -7,13 +7,12 @@ SPDX-License-Identifier: Apache-2.0
 package state
 
 import (
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"sync"
 	"sync/atomic"
 
 	"github.com/hyperledger/fabric/common/metrics"
 	"github.com/hyperledger/fabric/gossip/util"
-	//proto "github.com/hyperledger/fabric/protos/gossip"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 // PayloadsBuffer is used to store payloads into which used to
@@ -159,7 +158,7 @@ func (mb *metricsBuffer) Push(payload *cached.GossipPayload) {
 	mb.reportSize()
 }
 
-func (mb *metricsBuffer) Pop() *cached.GossipPayload{
+func (mb *metricsBuffer) Pop() *cached.GossipPayload {
 	pl := mb.PayloadsBuffer.Pop()
 	mb.reportSize()
 	return pl

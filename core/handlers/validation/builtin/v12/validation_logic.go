@@ -9,10 +9,10 @@ package v12
 import (
 	"bytes"
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"regexp"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/channelconfig"
 	commonerrors "github.com/hyperledger/fabric/common/errors"
 	"github.com/hyperledger/fabric/common/flogging"

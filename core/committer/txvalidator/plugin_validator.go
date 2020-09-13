@@ -8,6 +8,7 @@ package txvalidator
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"sync"
 
 	"github.com/hyperledger/fabric/common/cauthdsl"
@@ -20,7 +21,6 @@ import (
 	"github.com/hyperledger/fabric/msp"
 	"github.com/hyperledger/fabric/protos/common"
 	"github.com/pkg/errors"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 // MapBasedPluginMapper maps plugin names to their corresponding factories

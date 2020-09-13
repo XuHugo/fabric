@@ -7,10 +7,12 @@ SPDX-License-Identifier: Apache-2.0
 package ledgerstorage
 
 import (
+	"github.com/hyperledger/fabric/fastfabric/cached"
+	// "github.com/hyperledger/fabric/fastfabric/config"
+	// fffsblkstorage "github.com/hyperledger/fabric/fastfabric/fsblkstorage"
 	"sync"
 	"sync/atomic"
 
-	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/common/ledger/blkstorage"
 	"github.com/hyperledger/fabric/common/ledger/blkstorage/fsblkstorage"

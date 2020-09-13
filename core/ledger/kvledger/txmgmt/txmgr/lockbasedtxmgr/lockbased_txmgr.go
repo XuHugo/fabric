@@ -7,10 +7,10 @@ package lockbasedtxmgr
 
 import (
 	"bytes"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/core/ledger"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/bookkeeping"

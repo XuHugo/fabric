@@ -8,6 +8,7 @@ package builtin
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"reflect"
 
 	commonerrors "github.com/hyperledger/fabric/common/errors"
@@ -19,9 +20,6 @@ import (
 	. "github.com/hyperledger/fabric/core/handlers/validation/api/state"
 	"github.com/hyperledger/fabric/core/handlers/validation/builtin/v12"
 	"github.com/hyperledger/fabric/core/handlers/validation/builtin/v13"
-
-	//"github.com/hyperledger/fabric/protos/common"
-	"github.com/hyperledger/fabric/common/cached"
 	"github.com/pkg/errors"
 )
 

@@ -8,6 +8,7 @@ package privdata
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -20,7 +21,6 @@ import (
 	"github.com/hyperledger/fabric/protos/msp"
 	"github.com/hyperledger/fabric/protos/peer"
 	"github.com/spf13/viper"
-	"github.com/golang/common/cached"
 )
 
 type txValidationFlags []uint8

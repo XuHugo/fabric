@@ -7,18 +7,16 @@ SPDX-License-Identifier: Apache-2.0
 package historyleveldb
 
 import (
-	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/common/ledger/blkstorage"
-	"github.com/hyperledger/fabric/common/ledger/util/leveldbhelper"
 	"github.com/hyperledger/fabric/core/ledger"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/history/historydb"
-	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/version"
 	"github.com/hyperledger/fabric/core/ledger/ledgerconfig"
 	"github.com/hyperledger/fabric/core/ledger/util"
+	"github.com/hyperledger/fabric/fastfabric/cached"
+	"github.com/hyperledger/fabric/fastfabric/statedb"
 	"github.com/hyperledger/fabric/protos/common"
-	putils "github.com/hyperledger/fabric/protos/utils"
 )
 
 var logger historydbLogger = flogging.MustGetLogger("historyleveldb")
@@ -38,14 +36,15 @@ type historydbLogger interface {
 
 // HistoryDBProvider implements interface HistoryDBProvider
 type HistoryDBProvider struct {
-	dbProvider *leveldbhelper.Provider
+	dbProvider *statedb.Provider
 }
 
 // NewHistoryDBProvider instantiates HistoryDBProvider
 func NewHistoryDBProvider() *HistoryDBProvider {
 	dbPath := ledgerconfig.GetHistoryLevelDBPath()
 	logger.Debugf("constructing HistoryDBProvider dbPath=%s", dbPath)
-	dbProvider := leveldbhelper.NewProvider(&leveldbhelper.Conf{DBPath: dbPath})
+	dbProvider := statedb.NewProvider(dbPath)
+
 	return &HistoryDBProvider{dbProvider}
 }
 
@@ -61,12 +60,12 @@ func (provider *HistoryDBProvider) Close() {
 
 // historyDB implements HistoryDB interface
 type historyDB struct {
-	db     *leveldbhelper.DBHandle
+	db     *statedb.DBHandle
 	dbName string
 }
 
 // newHistoryDB constructs an instance of HistoryDB
-func newHistoryDB(db *leveldbhelper.DBHandle, dbName string) *historyDB {
+func newHistoryDB(db *statedb.DBHandle, dbName string) *historyDB {
 	return &historyDB{db, dbName}
 }
 
@@ -88,7 +87,7 @@ func (historyDB *historyDB) Commit(block *cached.Block) error {
 	//Set the starting tranNo to 0
 	var tranNo uint64
 
-	dbBatch := leveldbhelper.NewUpdateBatch()
+	dbBatch := statedb.NewUpdateBatch()
 
 	logger.Debugf("Channel [%s]: Updating history database for blockNo [%v] with [%d] transactions",
 		historyDB.dbName, blockNo, len(block.Data.Data))

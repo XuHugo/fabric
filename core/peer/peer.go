@@ -8,6 +8,7 @@ package peer
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"net"
 	"runtime"
 	"sync"
@@ -45,7 +46,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/semaphore"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 var peerLogger = flogging.MustGetLogger("peer")

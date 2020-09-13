@@ -8,10 +8,10 @@ package ledger
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-lib-go/healthz"
-	"github.com/hyperledger/fabric/common/cached"
 	commonledger "github.com/hyperledger/fabric/common/ledger"
 	"github.com/hyperledger/fabric/common/metrics"
 	"github.com/hyperledger/fabric/protos/common"

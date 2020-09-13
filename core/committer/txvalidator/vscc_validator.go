@@ -11,6 +11,7 @@ package txvalidator
 
 import (
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/common/cauthdsl"
@@ -19,12 +20,9 @@ import (
 	"github.com/hyperledger/fabric/core/common/ccprovider"
 	"github.com/hyperledger/fabric/core/common/sysccprovider"
 	validation "github.com/hyperledger/fabric/core/handlers/validation/api"
-	//"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/rwsetutil"
-	//"github.com/hyperledger/fabric/protos/common"
 	"github.com/hyperledger/fabric/protos/peer"
 	"github.com/hyperledger/fabric/protos/utils"
 	"github.com/pkg/errors"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 // VsccValidatorImpl is the implementation used to call
@@ -99,7 +97,7 @@ func (v *VsccValidatorImpl) VSCCValidateTx(seq int, payload *cached.Payload, env
 		return err, peer.TxValidationCode_INVALID_OTHER_REASON
 	}
 	if ccID != cca.ChaincodeId.Name {
-		err = errors.Errorf("inconsistent ccid info (%s/%s)", ccID, respPayload.ChaincodeId.Name)
+		err = errors.Errorf("inconsistent ccid info (%s/%s)", ccID, cca.ChaincodeId.Name)
 		logger.Errorf("%+v", err)
 		return err, peer.TxValidationCode_INVALID_OTHER_REASON
 	}

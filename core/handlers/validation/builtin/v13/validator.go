@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package v13
 
 import (
-	"github.com/hyperledger/fabric/common/cached"
 	commonerrors "github.com/hyperledger/fabric/common/errors"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"github.com/hyperledger/fabric/protos/peer"
 )
 

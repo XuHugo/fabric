@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package validation
 
-import "github.com/hyperledger/fabric/common/cached"
+import "github.com/hyperledger/fabric/fastfabric/cached"
 
 // Argument defines the argument for validation
 type Argument interface {

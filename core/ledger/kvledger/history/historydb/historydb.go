@@ -17,10 +17,10 @@ limitations under the License.
 package historydb
 
 import (
-	"github.com/hyperledger/fabric/common/cached"
 	"github.com/hyperledger/fabric/common/ledger/blkstorage"
 	"github.com/hyperledger/fabric/core/ledger"
 	"github.com/hyperledger/fabric/core/ledger/kvledger/txmgmt/version"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 )
 
 // HistoryDBProvider provides an instance of a history DB

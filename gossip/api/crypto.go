@@ -7,11 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package api
 
 import (
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"time"
 
 	"github.com/hyperledger/fabric/gossip/common"
 	"google.golang.org/grpc"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 // MessageCryptoService is the contract between the gossip component and the

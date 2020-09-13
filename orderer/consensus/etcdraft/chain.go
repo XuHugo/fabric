@@ -10,11 +10,10 @@ import (
 	"context"
 	"encoding/pem"
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/hyperledger/fabric/common/cached"
 
 	"code.cloudfoundry.org/clock"
 	"github.com/golang/protobuf/proto"
@@ -1292,7 +1291,7 @@ func (c *Chain) getInFlightConfChange() *raftpb.ConfChange {
 		return nil // nothing to failover just started the chain
 	}
 
-	if !utils.IsConfigBlock(c.lastBlock) {
+	if !utils.IsConfigBlock(cached.WrapBlock(c.lastBlock)) {
 		return nil
 	}
 

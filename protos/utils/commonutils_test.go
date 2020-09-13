@@ -9,6 +9,7 @@ package utils
 import (
 	"bytes"
 	"errors"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -424,7 +425,7 @@ func TestIsConfigBlock(t *testing.T) {
 	env := newConfigEnv(envType)
 	block := newBlock(env)
 
-	result := IsConfigBlock(block)
+	result := IsConfigBlock(cached.WrapBlock(block))
 	assert.True(t, result, "IsConfigBlock returns true for blocks with CONFIG envelope")
 
 	// scenario 2: ORDERER_TRANSACTION envelope
@@ -432,7 +433,7 @@ func TestIsConfigBlock(t *testing.T) {
 	env = newConfigEnv(envType)
 	block = newBlock(env)
 
-	result = IsConfigBlock(block)
+	result = IsConfigBlock(cached.WrapBlock(block))
 	assert.True(t, result, "IsConfigBlock returns true for blocks with ORDERER_TRANSACTION envelope")
 
 	// scenario 3: MESSAGE envelope
@@ -440,7 +441,7 @@ func TestIsConfigBlock(t *testing.T) {
 	env = newConfigEnv(envType)
 	block = newBlock(env)
 
-	result = IsConfigBlock(block)
+	result = IsConfigBlock(cached.WrapBlock(block))
 	assert.False(t, result, "IsConfigBlock returns false for blocks with MESSAGE envelope")
 }
 

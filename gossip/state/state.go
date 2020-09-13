@@ -8,11 +8,12 @@ package state
 
 import (
 	"bytes"
+	"github.com/hyperledger/fabric/fastfabric/cached"
+	// "github.com/hyperledger/fabric/fastfabric/config"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	//pb "github.com/golang/protobuf/proto"
 	vsccErrors "github.com/hyperledger/fabric/common/errors"
 	"github.com/hyperledger/fabric/gossip/api"
 	"github.com/hyperledger/fabric/gossip/comm"
@@ -25,14 +26,13 @@ import (
 	"github.com/hyperledger/fabric/protos/ledger/rwset"
 	"github.com/hyperledger/fabric/protos/transientstore"
 	"github.com/pkg/errors"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 // GossipStateProvider is the interface to acquire sequences of the ledger blocks
 // capable to full fill missing blocks by running state replication and
 // sending request to get missing block to other nodes
 type GossipStateProvider interface {
-	AddPayload(payload *cached.Gossipayload) error
+	AddPayload(payload *cached.GossipPayload) error
 
 	// Stop terminates state transfer object
 	Stop()
@@ -506,16 +506,18 @@ func (s *GossipStateProviderImpl) handleStateResponse(msg proto.ReceivedMessage)
 		seqNum := payload.Data.Header.Number
 		logger.Debugf("Received payload with sequence number %d.", seqNum)
 		block := cached.WrapBlock(payload.Data)
-		if err := s.mediator.VerifyBlock(common2.ChainID(s.chainID), seqNum, block); err != nil {
-			err = errors.WithStack(err)
-			logger.Warningf("Error verifying block with sequence number %d, due to %+v", seqNum, err)
-			return uint64(0), err
-		}
+		// if config.IsFastPeer {
+		// 	if err := s.mediator.VerifyBlock(common2.ChainID(s.chainID), seqNum, block); err != nil {
+		// 		err = errors.WithStack(err)
+		// 		logger.Warningf("Error verifying block with sequence number %d, due to %+v", seqNum, err)
+		// 		return uint64(0), err
+		// 	}
+		// }
 		if max < seqNum {
 			max = seqNum
 		}
 
-		err := s.addPayload(&cached.Gossip.Payload{Data: block,PrivateData: payload.PrivateData}, Blocking)
+		err := s.addPayload(&cached.GossipPayload{Data: block, PrivateData: payload.PrivateData}, Blocking)
 		if err != nil {
 			logger.Warningf("Block [%d] received from block transfer wasn't added to payload buffer: %v", seqNum, err)
 		}
@@ -551,10 +553,10 @@ func (s *GossipStateProviderImpl) queueNewMessage(msg *proto.GossipMessage) {
 	if dataMsg != nil {
 		plRaw := dataMsg.GetPayload()
 		if err := s.addPayload(&cached.GossipPayload{
-			Data: cached.WrapBlock(plRaw.Data),
-			privateData :plRaw.PrivateData,
+			Data:        cached.WrapBlock(plRaw.Data),
+			PrivateData: plRaw.PrivateData,
 		}, NonBlocking); err != nil {
-			logger.Warningf("Block [%d] received from gossip wasn't added to payload buffer: %v", dataMsg.Payload.Data,Header.Number, err)
+			logger.Warningf("Block [%d] received from gossip wasn't added to payload buffer: %v", dataMsg.Payload.Data.Header.Number, err)
 			return
 		}
 
@@ -565,7 +567,6 @@ func (s *GossipStateProviderImpl) queueNewMessage(msg *proto.GossipMessage) {
 
 func (s *GossipStateProviderImpl) deliverPayloads() {
 	defer s.done.Done()
-
 	for {
 		select {
 		// Wait for notification that next seq has arrived
@@ -585,13 +586,18 @@ func (s *GossipStateProviderImpl) deliverPayloads() {
 						continue
 					}
 				}
-				if err := s.commitBlock(block, p); err != nil {
-					if executionErr, isExecutionErr := err.(*vsccErrors.VSCCExecutionFailureError); isExecutionErr {
-						logger.Errorf("Failed executing VSCC due to %v. Aborting chain processing", executionErr)
-						return
+				go func(block *cached.Block, p util.PvtDataCollections) {
+					if err := s.commitBlock(block, p); err != nil {
+						if executionErr, isExecutionErr := err.(*vsccErrors.VSCCExecutionFailureError); isExecutionErr {
+							logger.Errorf("Failed executing VSCC due to %v. Aborting chain processing", executionErr)
+							s.Stop()
+							return
+						}
+						logger.Panicf("Cannot commit block to the ledger due to %+v", errors.WithStack(err))
+						s.Stop()
 					}
-					logger.Panicf("Cannot commit block to the ledger due to %+v", errors.WithStack(err))
-				}
+				}(block, p)
+
 			}
 		case <-s.stopCh:
 			s.stopCh <- struct{}{}

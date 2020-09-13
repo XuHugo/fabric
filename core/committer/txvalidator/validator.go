@@ -9,9 +9,9 @@ package txvalidator
 import (
 	"context"
 	"fmt"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 	"time"
 
-	//"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric/common/channelconfig"
 	"github.com/hyperledger/fabric/common/configtx"
 	commonerrors "github.com/hyperledger/fabric/common/errors"
@@ -28,7 +28,6 @@ import (
 	"github.com/hyperledger/fabric/protos/peer"
 	"github.com/hyperledger/fabric/protos/utils"
 	"github.com/pkg/errors"
-	"github.com/hyperledger/fabric/common/cached"
 )
 
 // Support provides all of the needed to evaluate the VSCC
@@ -440,14 +439,16 @@ func (v *TxValidator) validateTx(req *blockValidationRequest, results chan<- *bl
 			return
 		}
 
-		// if _, err := proto.Marshal(env); err != nil {
-		// 	logger.Warningf("Cannot marshal transaction: %s", err)
-		// 	results <- &blockValidationResult{
-		// 		tIdx:           tIdx,
-		// 		validationCode: peer.TxValidationCode_MARSHAL_TX_ERROR,
-		// 	}
-		// 	return
-		// }
+		// env was unmarshaled just a few lines above!
+
+		//if _, err := proto.Marshal(env); err != nil {
+		//	logger.Warningf("Cannot marshal transaction: %s", err)
+		//	results <- &blockValidationResult{
+		//		tIdx:           tIdx,
+		//		validationCode: peer.TxValidationCode_MARSHAL_TX_ERROR,
+		//	}
+		//	return
+		//}
 		// Succeeded to pass down here, transaction is valid
 		results <- &blockValidationResult{
 			tIdx:                 tIdx,
@@ -568,7 +569,7 @@ func (v *TxValidator) getTxCCInstance(payload *cached.Payload) (invokeCCIns, upg
 	chainID := chdr.ChannelId // it is guaranteed to be an existing channel by now
 
 	// ChaincodeID
-	hdrExt, err :=  payload.Header.UnmarshalChaincodeHeaderExtension()
+	hdrExt, err := payload.Header.UnmarshalChaincodeHeaderExtension()
 	if err != nil {
 		return nil, nil, err
 	}
