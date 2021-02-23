@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/encoding/gzip"
 )
 
 type GRPCClient struct {
@@ -65,6 +66,9 @@ func NewGRPCClient(config ClientConfig) (*GRPCClient, error) {
 	// set send/recv message size to package defaults
 	client.maxRecvMsgSize = MaxRecvMsgSize
 	client.maxSendMsgSize = MaxSendMsgSize
+
+	//set compressor
+	client.dialOpts = append(client.dialOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 
 	return client, nil
 }
