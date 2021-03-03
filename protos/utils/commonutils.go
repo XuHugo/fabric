@@ -17,6 +17,7 @@ import (
 	cb "github.com/hyperledger/fabric/protos/common"
 	pb "github.com/hyperledger/fabric/protos/peer"
 	"github.com/pkg/errors"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 )
 
 // MarshalOrPanic serializes a protobuf message and panics if this
@@ -291,13 +292,13 @@ func UnmarshalSignatureHeaderOrPanic(bytes []byte) *cb.SignatureHeader {
 
 // IsConfigBlock validates whenever given block contains configuration
 // update transaction
-func IsConfigBlock(block *cb.Block) bool {
-	envelope, err := ExtractEnvelope(block, 0)
+func IsConfigBlock(block *cached.Block) bool {
+	envelope, err := block.UnmarshalSpecificEnvelope(0)
 	if err != nil {
 		return false
 	}
 
-	payload, err := GetPayload(envelope)
+	payload, err := envelope.UnmarshalPayload()
 	if err != nil {
 		return false
 	}
@@ -306,7 +307,7 @@ func IsConfigBlock(block *cb.Block) bool {
 		return false
 	}
 
-	hdr, err := UnmarshalChannelHeader(payload.Header.ChannelHeader)
+	hdr, err := payload.Header.UnmarshalChannelHeader()
 	if err != nil {
 		return false
 	}

@@ -31,6 +31,7 @@ import (
 	"github.com/hyperledger/fabric/protos/peer"
 	"github.com/hyperledger/fabric/protos/utils"
 	"github.com/pkg/errors"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 )
 
 var logger = flogging.MustGetLogger("kvledger")
@@ -479,7 +480,7 @@ func (l *kvLedger) GetMissingPvtDataInfoForMostRecentBlocks(maxBlock int) (ledge
 	return l.blockStore.GetMissingPvtDataInfoForMostRecentBlocks(maxBlock)
 }
 
-func (l *kvLedger) addBlockCommitHash(block *common.Block, updateBatchBytes []byte) {
+func (l *kvLedger) addBlockCommitHash(block *cached.Block, updateBatchBytes []byte) {
 	var valueBytes []byte
 
 	txValidationCode := block.Metadata.Metadata[common.BlockMetadataIndex_TRANSACTIONS_FILTER]

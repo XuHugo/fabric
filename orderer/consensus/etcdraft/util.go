@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/raft"
 	"go.etcd.io/etcd/raft/raftpb"
+	"github.com/hyperledger/fabric/fastfabric/cached"
 )
 
 // MembershipChanges keeps information about membership
@@ -355,7 +356,7 @@ func ConsensusMetadataFromConfigBlock(block *common.Block) (*etcdraft.ConfigMeta
 		return nil, errors.New("nil block")
 	}
 
-	if !utils.IsConfigBlock(block) {
+	if !utils.IsConfigBlock(cached.WrapBlock(block)) {
 		return nil, errors.New("not a config block")
 	}
 
