@@ -23,7 +23,8 @@ import (
 	"github.com/hyperledger/fabric/protos/common"
 	"github.com/hyperledger/fabric/protos/utils"
 	"github.com/pkg/errors"
-	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/hyperledger/fabric/fastfabric/statedb"
+
 )
 
 var (
@@ -266,13 +267,14 @@ func panicOnErr(err error, mgsFormat string, args ...interface{}) {
 // Ledger id persistence related code
 ///////////////////////////////////////////////////////////////////////
 type idStore struct {
-	db *leveldbhelper.DB
+	db *statedb.DBHandle
+	provider *statedb.Provider
 }
 
 func openIDStore(path string) *idStore {
-	db := leveldbhelper.CreateDB(&leveldbhelper.Conf{DBPath: path})
-	db.Open()
-	return &idStore{db}
+	dbProvider := statedb.NewProvider(path)
+	db := dbProvider.GetDBHandle("idstore")
+	return &idStore{db, dbProvider}
 }
 
 func (s *idStore) setUnderConstructionFlag(ledgerID string) error {
@@ -304,7 +306,7 @@ func (s *idStore) createLedgerID(ledgerID string, gb *common.Block) error {
 	if val, err = proto.Marshal(gb); err != nil {
 		return err
 	}
-	batch := &leveldb.Batch{}
+	batch := statedb.NewUpdateBatch()
 	batch.Put(key, val)
 	batch.Delete(underConstructionLedgerKey)
 	return s.db.WriteBatch(batch, true)
@@ -337,7 +339,7 @@ func (s *idStore) getAllLedgerIds() ([]string, error) {
 }
 
 func (s *idStore) close() {
-	s.db.Close()
+	s.provider.Close()
 }
 
 func (s *idStore) encodeLedgerKey(ledgerID string) []byte {
