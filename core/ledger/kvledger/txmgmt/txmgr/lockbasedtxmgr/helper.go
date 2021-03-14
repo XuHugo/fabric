@@ -29,6 +29,7 @@ type queryHelper struct {
 	itrs              []*resultsItr
 	err               error
 	doneInvoked       bool
+	hegiht            *version.Height
 }
 
 func newQueryHelper(txmgr *LockBasedTxMgr, rwsetBuilder *rwsetutil.RWSetBuilder) *queryHelper {
@@ -36,6 +37,13 @@ func newQueryHelper(txmgr *LockBasedTxMgr, rwsetBuilder *rwsetutil.RWSetBuilder)
 	validator := newCollNameValidator(txmgr.ccInfoProvider, &lockBasedQueryExecutor{helper: helper})
 	helper.collNameValidator = validator
 	return helper
+}
+
+func validateVersion(ver, height *version.Height){
+	if height != nil && ver != nil && ver.Compare(height) > 0{
+		ver.BlockNum = 0
+		ver.TxNum = 0
+	}
 }
 
 func (h *queryHelper) getState(ns string, key string) ([]byte, []byte, error) {
@@ -47,6 +55,7 @@ func (h *queryHelper) getState(ns string, key string) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 	val, metadata, ver := decomposeVersionedValue(versionedValue)
+	validateVersion(ver, h.hegiht)
 	if h.rwsetBuilder != nil {
 		h.rwsetBuilder.AddToReadSet(ns, key, ver)
 	}
@@ -64,6 +73,7 @@ func (h *queryHelper) getStateMultipleKeys(namespace string, keys []string) ([][
 	values := make([][]byte, len(versionedValues))
 	for i, versionedValue := range versionedValues {
 		val, _, ver := decomposeVersionedValue(versionedValue)
+		validateVersion(ver, h.hegiht)
 		if h.rwsetBuilder != nil {
 			h.rwsetBuilder.AddToReadSet(namespace, keys[i], ver)
 		}
@@ -77,7 +87,7 @@ func (h *queryHelper) getStateRangeScanIterator(namespace string, startKey strin
 		return nil, err
 	}
 	itr, err := newResultsItr(namespace, startKey, endKey, nil, h.txmgr.db, h.rwsetBuilder,
-		ledgerconfig.IsQueryReadsHashingEnabled(), ledgerconfig.GetMaxDegreeQueryReadsHashing())
+		ledgerconfig.IsQueryReadsHashingEnabled(), ledgerconfig.GetMaxDegreeQueryReadsHashing(), h.hegiht)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +100,7 @@ func (h *queryHelper) getStateRangeScanIteratorWithMetadata(namespace string, st
 		return nil, err
 	}
 	itr, err := newResultsItr(namespace, startKey, endKey, metadata, h.txmgr.db, h.rwsetBuilder,
-		ledgerconfig.IsQueryReadsHashingEnabled(), ledgerconfig.GetMaxDegreeQueryReadsHashing())
+		ledgerconfig.IsQueryReadsHashingEnabled(), ledgerconfig.GetMaxDegreeQueryReadsHashing(), h.hegiht)
 	if err != nil {
 		return nil, err
 	}
@@ -148,6 +158,7 @@ func (h *queryHelper) getPrivateData(ns, coll, key string) ([]byte, error) {
 			"private data matching public hash version is not available. Public hash version = %s, Private data version = %s",
 			hashVersion, ver)}
 	}
+	validateVersion(ver, h.hegiht)
 	if h.rwsetBuilder != nil {
 		h.rwsetBuilder.AddToHashedReadSet(ns, coll, key, ver)
 	}
@@ -168,6 +179,7 @@ func (h *queryHelper) getPrivateDataValueHash(ns, coll, key string) (valueHash, 
 		return nil, nil, err
 	}
 	valHash, metadata, ver := decomposeVersionedValue(versionedValue)
+	validateVersion(ver, h.hegiht)
 	if h.rwsetBuilder != nil {
 		h.rwsetBuilder.AddToHashedReadSet(ns, coll, key, ver)
 	}
@@ -188,6 +200,7 @@ func (h *queryHelper) getPrivateDataMultipleKeys(ns, coll string, keys []string)
 	values := make([][]byte, len(versionedValues))
 	for i, versionedValue := range versionedValues {
 		val, _, ver := decomposeVersionedValue(versionedValue)
+		validateVersion(ver, h.hegiht)
 		if h.rwsetBuilder != nil {
 			h.rwsetBuilder.AddToHashedReadSet(ns, coll, keys[i], ver)
 		}
@@ -334,10 +347,11 @@ type resultsItr struct {
 	rwSetBuilder            *rwsetutil.RWSetBuilder
 	rangeQueryInfo          *kvrwset.RangeQueryInfo
 	rangeQueryResultsHelper *rwsetutil.RangeQueryResultsHelper
+	height                  *version.Height
 }
 
 func newResultsItr(ns string, startKey string, endKey string, metadata map[string]interface{},
-	db statedb.VersionedDB, rwsetBuilder *rwsetutil.RWSetBuilder, enableHashing bool, maxDegree uint32) (*resultsItr, error) {
+	db statedb.VersionedDB, rwsetBuilder *rwsetutil.RWSetBuilder, enableHashing bool, maxDegree uint32, height *version.Height) (*resultsItr, error) {
 	var err error
 	var dbItr statedb.ResultsIterator
 	if metadata == nil {
@@ -348,7 +362,7 @@ func newResultsItr(ns string, startKey string, endKey string, metadata map[strin
 	if err != nil {
 		return nil, err
 	}
-	itr := &resultsItr{ns: ns, dbItr: dbItr}
+	itr := &resultsItr{ns: ns, dbItr: dbItr, height: height}
 	// it's a simulation request so, enable capture of range query info
 	if rwsetBuilder != nil {
 		itr.rwSetBuilder = rwsetBuilder
@@ -411,6 +425,7 @@ func (itr *resultsItr) updateRangeQueryInfo(queryResult statedb.QueryResult) {
 		return
 	}
 	versionedKV := queryResult.(*statedb.VersionedKV)
+	validateVersion(versionedKV.Version, itr.height)
 	itr.rangeQueryResultsHelper.AddResult(rwsetutil.NewKVRead(versionedKV.Key, versionedKV.Version))
 	// Set the end key to the latest key retrieved by the caller.
 	// Because, the caller may actually not invoke the Next() function again
